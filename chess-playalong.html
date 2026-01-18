@@ -583,14 +583,29 @@
             window.addEventListener('resize', () => board.resize());
         }
         
-        function initStockfish() {
-            // Use Stockfish.js WASM
-            stockfish = new Worker('https://unpkg.com/stockfish.js@10.0.2/stockfish.js');
-            
-            stockfish.onmessage = handleStockfishMessage;
-            stockfish.postMessage('uci');
-            stockfish.postMessage('setoption name MultiPV value 4');
-            stockfish.postMessage('isready');
+        async function initStockfish() {
+            try {
+                // Fetch Stockfish script and create a Blob URL to work around CORS restrictions
+                const response = await fetch('https://unpkg.com/stockfish.js@10.0.2/stockfish.js');
+                const blob = await response.blob();
+                const blobUrl = URL.createObjectURL(blob);
+
+                stockfish = new Worker(blobUrl);
+                stockfish.onmessage = handleStockfishMessage;
+                stockfish.postMessage('uci');
+                stockfish.postMessage('setoption name MultiPV value 4');
+                stockfish.postMessage('isready');
+            } catch (e) {
+                console.error('Failed to initialize Stockfish:', e);
+                document.getElementById('engineDepth').textContent = 'Engine unavailable';
+                document.getElementById('moveList').innerHTML = `
+                    <div class="empty-state">
+                        <p>Failed to load chess engine.</p>
+                        <p style="margin-top: 8px; font-size: 11px; color: var(--text-muted);">
+                            ${e.message}
+                        </p>
+                    </div>`;
+            }
         }
         
         // ============================================
@@ -598,7 +613,8 @@
         // ============================================
         function onDragStart(source, piece, position, orientation) {
             // Allow moving any piece (we're mirroring a game)
-            if (game.isGameOver()) return false;
+            // Use game_over() for chess.js 0.10.x compatibility
+            if (game.game_over()) return false;
             return true;
         }
         
@@ -694,10 +710,12 @@
             if (analysisTimeout) clearTimeout(analysisTimeout);
             
             analysisTimeout = setTimeout(() => {
-                stockfish.postMessage('stop');
-                stockfish.postMessage(`position fen ${game.fen()}`);
-                stockfish.postMessage('go depth 18');
-                
+                if (stockfish) {
+                    stockfish.postMessage('stop');
+                    stockfish.postMessage(`position fen ${game.fen()}`);
+                    stockfish.postMessage('go depth 18');
+                }
+
                 // Also fetch opening book data
                 fetchOpeningData();
             }, 100);

@@ -17,6 +17,7 @@ A feature-rich, browser-based chess analysis tool that combines interactive game
 - Visual evaluation bar with win probability
 - Move rankings by strength
 - Hover preview to see candidate move destinations on the board
+- Click any candidate move to play it on the board
 
 ### Opening Book Integration
 - Masters games statistics for the current position
@@ -29,6 +30,7 @@ A feature-rich, browser-based chess analysis tool that combines interactive game
 - Claude-powered strategic and tactical analysis
 - Explains the ideas behind top engine moves
 - Requires an Anthropic API key (stored locally in browser)
+- Optional Supabase caching to avoid redundant API calls
 
 ## Getting Started
 
@@ -40,7 +42,12 @@ A feature-rich, browser-based chess analysis tool that combines interactive game
    cd chess-playalong
    ```
 
-2. Open `index.html` in your browser, or serve it with any static file server:
+2. Copy the example config file:
+   ```bash
+   cp config.example.js config.js
+   ```
+
+3. Open `index.html` in your browser, or serve it with any static file server:
    ```bash
    # Using Python
    python -m http.server 8000
@@ -49,7 +56,7 @@ A feature-rich, browser-based chess analysis tool that combines interactive game
    npx serve .
    ```
 
-3. Navigate to `http://localhost:8000` (or open the file directly)
+4. Navigate to `http://localhost:8000` (or open the file directly)
 
 ### API Key Setup (Optional)
 
@@ -61,6 +68,46 @@ For AI-powered move explanations, you'll need an Anthropic API key:
 
 You can skip this step and use all other features without an API key.
 
+### Supabase Caching (Optional)
+
+To cache move explanations and reduce API calls, you can set up Supabase:
+
+1. Create a free project at [Supabase](https://supabase.com/)
+
+2. Create the `move_explanations` table using the SQL Editor:
+   ```sql
+   CREATE TABLE move_explanations (
+       id SERIAL PRIMARY KEY,
+       cache_key TEXT UNIQUE NOT NULL,
+       fen TEXT NOT NULL,
+       move TEXT NOT NULL,
+       explanation TEXT NOT NULL,
+       created_at TIMESTAMPTZ DEFAULT NOW()
+   );
+
+   -- Enable Row Level Security
+   ALTER TABLE move_explanations ENABLE ROW LEVEL SECURITY;
+
+   -- Allow public read/write access
+   CREATE POLICY "Allow public access" ON move_explanations
+       FOR ALL USING (true) WITH CHECK (true);
+   ```
+
+3. Get your project URL and anon key from Project Settings > API
+
+4. Add your credentials to `config.js`:
+   ```javascript
+   const CONFIG = {
+       supabase: {
+           url: 'https://your-project.supabase.co',
+           anonKey: 'your-anon-key'
+       },
+       // ... other settings
+   };
+   ```
+
+The app works without Supabase - explanations just won't be cached between sessions.
+
 ## Usage
 
 ### Making Moves
@@ -70,7 +117,8 @@ You can skip this step and use all other features without an API key.
 ### Analysis Panel
 - **Candidate Moves**: Shows the top 4 engine recommendations with evaluations
 - **Hover** over a candidate move to preview it on the board
-- **Click** the explanation icon to get AI analysis of a move
+- **Click** a candidate move to play it
+- **Explain Moves**: Get AI analysis of all candidate moves (or enable Auto for automatic explanations)
 
 ### Opening Data
 - When in book positions, see statistics from master-level games
@@ -94,16 +142,20 @@ You can skip this step and use all other features without an API key.
 | DOM Manipulation | jQuery v3.7.1 |
 | Opening Data | [Lichess Masters API](https://lichess.org/api#tag/Opening-Explorer) |
 | AI Analysis | [Anthropic Claude API](https://docs.anthropic.com/) |
+| Caching (Optional) | [Supabase](https://supabase.com/) |
 
 ## Architecture
 
-The entire application is contained in a single `index.html` file for maximum portability. No build process is required.
+The application is organized into separate files for maintainability. No build process is required.
 
 ```
 chess-playalong/
-├── index.html    # Complete application (HTML + CSS + JS)
-├── README.md     # This file
-└── .gitignore    # Git configuration
+├── index.html        # HTML structure and CSS styles
+├── config.js         # Your configuration (gitignored)
+├── config.example.js # Configuration template
+├── app.js            # Application logic
+├── README.md         # This file
+└── .gitignore        # Git configuration
 ```
 
 ### Key Components
@@ -121,6 +173,32 @@ chess-playalong/
 - Network access for external APIs (Lichess, Anthropic)
 
 Tested on Chrome, Firefox, Safari, and Edge.
+
+## Configuration
+
+All settings can be configured in `config.js`:
+
+```javascript
+const CONFIG = {
+    // Supabase (optional - for caching explanations)
+    supabase: {
+        url: 'https://your-project.supabase.co',
+        anonKey: 'your-anon-key'
+    },
+
+    // Anthropic API key (can also be set via the UI modal)
+    anthropicApiKey: 'sk-ant-...',
+
+    // Engine settings
+    engine: {
+        depth: 18,    // Analysis depth (higher = slower but more accurate)
+        multiPV: 4    // Number of candidate moves to show
+    },
+
+    // Claude model for explanations
+    claudeModel: 'claude-sonnet-4-5-20250929'
+};
+```
 
 ## Customization
 
@@ -156,3 +234,4 @@ MIT License - feel free to use and modify as you see fit.
 - [Stockfish](https://stockfishchess.org/) team for the powerful chess engine
 - [Chessboard.js](https://chessboardjs.com/) for the interactive board component
 - [Anthropic](https://anthropic.com/) for Claude API access
+- [Supabase](https://supabase.com/) for the optional caching backend

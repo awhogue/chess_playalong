@@ -43,12 +43,12 @@ async function getExplanationFromCache(fen, move) {
             .from('move_explanations')
             .select('explanation')
             .eq('cache_key', cacheKey)
-            .single();
+            .maybeSingle();
 
         if (error || !data) return null;
         return data.explanation;
     } catch (e) {
-        console.error('Cache read error:', e);
+        // Silently handle cache errors - not critical
         return null;
     }
 }
@@ -69,7 +69,7 @@ async function saveExplanationToCache(fen, move, explanation) {
                 created_at: new Date().toISOString()
             }, { onConflict: 'cache_key' });
     } catch (e) {
-        console.error('Cache write error:', e);
+        // Silently handle cache errors - not critical
     }
 }
 

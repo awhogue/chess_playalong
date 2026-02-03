@@ -429,6 +429,16 @@ function updateAnalysisDisplay() {
         updateEvalDisplay(moves[0].eval);
     }
 
+    const autoExplain = document.getElementById('autoExplainCheckbox').checked;
+    let defaultExplanation;
+    if (!apiKey) {
+        defaultExplanation = 'Add API key for explanations';
+    } else if (autoExplain) {
+        defaultExplanation = 'Waiting for Stockfish...';
+    } else {
+        defaultExplanation = 'Click "Explain Moves" for analysis';
+    }
+
     let html = '';
     moves.forEach((m, i) => {
         const evalClass = getEvalClass(m.eval);
@@ -441,7 +451,7 @@ function updateAnalysisDisplay() {
                 <div class="move-eval ${evalClass}">${m.eval}</div>
             </div>
             <div class="move-explanation" id="explanation-${i}">
-                ${!apiKey ? 'Add API key for explanations' : 'Click "Explain Moves" for analysis'}
+                ${defaultExplanation}
             </div>
         </div>`;
     });

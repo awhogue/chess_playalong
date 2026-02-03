@@ -74,12 +74,40 @@ async function saveExplanationToCache(fen, move, explanation) {
 }
 
 // ============================================
+// URL State Management
+// ============================================
+function getFenFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('fen');
+}
+
+function updateUrlWithFen() {
+    const fen = game.fen();
+    const url = new URL(window.location);
+    url.searchParams.set('fen', fen);
+    history.replaceState(null, '', url);
+}
+
+// ============================================
 // Initialize
 // ============================================
 function init() {
     initSupabase();
     initBoard();
     initStockfish();
+
+    // Load position from URL if present
+    const urlFen = getFenFromUrl();
+    if (urlFen) {
+        try {
+            if (game.load(urlFen)) {
+                board.position(urlFen);
+                updateDisplay();
+            }
+        } catch (e) {
+            console.warn('Invalid FEN in URL, using starting position');
+        }
+    }
 
     // Show API key modal if no key stored
     if (!apiKey) {
@@ -88,6 +116,7 @@ function init() {
 
     // Initial analysis
     analyzePosition();
+    updateUrlWithFen();
 }
 
 function initBoard() {
@@ -175,6 +204,7 @@ function handleMove(source, target) {
 
     updateDisplay();
     analyzePosition();
+    updateUrlWithFen();
 }
 
 function newGame() {
@@ -182,6 +212,7 @@ function newGame() {
     board.start();
     updateDisplay();
     analyzePosition();
+    updateUrlWithFen();
 }
 
 function undoMove() {
@@ -189,6 +220,7 @@ function undoMove() {
     board.position(game.fen());
     updateDisplay();
     analyzePosition();
+    updateUrlWithFen();
 }
 
 function flipBoard() {
@@ -218,6 +250,7 @@ function setFenFromInput() {
             updateDisplay();
             updateFenDisplay();
             analyzePosition();
+            updateUrlWithFen();
         } else {
             alert('Invalid FEN position');
         }
@@ -489,6 +522,7 @@ function playAnalysisMove(uci) {
     board.position(game.fen());
     updateDisplay();
     analyzePosition();
+    updateUrlWithFen();
 }
 
 function parseEval(evalStr) {

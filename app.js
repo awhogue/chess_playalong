@@ -14,14 +14,32 @@ let analysisTimeout = null;
 // ============================================
 let supabaseClient = null;
 
-function initSupabase() {
+async function initSupabase() {
     // Try config file first, then localStorage
     const url = (typeof CONFIG !== 'undefined' && CONFIG.supabase?.url) || localStorage.getItem('supabase_url') || '';
     const anonKey = (typeof CONFIG !== 'undefined' && CONFIG.supabase?.anonKey) || localStorage.getItem('supabase_anon_key') || '';
 
     if (url && anonKey && window.supabase) {
-        supabaseClient = window.supabase.createClient(url, anonKey);
-        console.log('Supabase cache enabled');
+        const client = window.supabase.createClient(url, anonKey);
+
+        // Health check: probe with a timeout to verify connectivity
+        try {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 5000);
+            await client
+                .from('move_explanations')
+                .select('cache_key')
+                .limit(1)
+                .abortSignal(controller.signal);
+            clearTimeout(timeout);
+            supabaseClient = client;
+            console.log('Supabase cache enabled');
+        } catch (e) {
+            console.warn('Supabase cache unavailable:', e.message);
+            supabaseClient = null;
+            const statusEl = document.getElementById('cacheStatus');
+            if (statusEl) statusEl.style.display = '';
+        }
     }
 }
 

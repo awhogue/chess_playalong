@@ -841,8 +841,8 @@ function parseExplanations(text) {
     const lines = text.split('\n');
 
     for (const line of lines) {
-        // Match patterns like "e4: explanation" or "1. e4: explanation" or "**e4**: explanation"
-        const match = line.match(/^\*?\*?(\d+\.\s*)?([KQRBN]?[a-h]?[1-8]?x?[a-h][1-8](?:=[QRBN])?[+#]?)\*?\*?[:\s]+(.+)/);
+        // Match patterns like "e4: explanation" or "1. e4: explanation" or "**e4**: explanation" or "O-O: explanation"
+        const match = line.match(/^\*?\*?(\d+\.\s*)?(O-O-O|O-O|[KQRBN]?[a-h]?[1-8]?x?[a-h][1-8](?:=[QRBN])?[+#]?)\*?\*?[:\s]+(.+)/);
         if (match) {
             const move = match[2];
             const explanation = match[3].trim();

@@ -336,6 +336,27 @@ function analyzePosition() {
     // Clear previous analysis
     analysisLines = {};
     currentDepth = 0;
+
+    // Handle game-over states — Stockfish can't analyze terminal positions
+    if (game.game_over()) {
+        let message = 'Game over';
+        if (game.in_checkmate()) {
+            const winner = game.turn() === 'w' ? 'Black' : 'White';
+            message = `Checkmate — ${winner} wins`;
+        } else if (game.in_stalemate()) {
+            message = 'Stalemate — Draw';
+        } else if (game.in_threefold_repetition()) {
+            message = 'Threefold repetition — Draw';
+        } else if (game.insufficient_material()) {
+            message = 'Insufficient material — Draw';
+        } else if (game.in_draw()) {
+            message = 'Draw';
+        }
+        document.getElementById('engineDepth').textContent = 'Game over';
+        document.getElementById('moveList').innerHTML = `<div class="empty-state">${message}</div>`;
+        return;
+    }
+
     document.getElementById('engineDepth').textContent = 'Analyzing...';
     document.getElementById('moveList').innerHTML = '<div class="empty-state">Analyzing position...</div>';
 
